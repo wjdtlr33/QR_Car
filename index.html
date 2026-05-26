@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>차량 안심번호 QR</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f8fa;
+      --card: #ffffff;
+      --border: #e2e4e9;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --accent: #1a1a2e;
+      --accent-light: #f0f0f8;
+      --success: #059669;
+      --warn: #d97706;
+      --danger: #dc2626;
+      --radius: 14px;
+      --shadow: 0 2px 16px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── MODE SWITCH ── */
+    #app-root { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* GENERATE PAGE */
+    #gen-page { display: block; }
+    #call-page { display: none; }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--accent);
+      color: #fff;
+      text-align: center;
+      padding: 20px 16px 16px;
+    }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.2px; }
+    header p  { font-size: 13px; opacity: 0.7; margin-top: 4px; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── CONTENT ── */
+    main { flex: 1; padding: 20px 16px; max-width: 480px; margin: 0 auto; width: 100%; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+
+    /* ── FORM ── */
+    label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+    input[type="tel"], input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: var(--accent); background: #fff; }
+
+    .input-row { display: flex; gap: 8px; align-items: flex-end; }
+    .input-row input { flex: 1; }
+
+    .helper { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+    /* ── BUTTON ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary  { background: var(--accent); color: #fff; width: 100%; justify-content: center; }
+    .btn-sm       { font-size: 13px; padding: 8px 14px; }
+    .btn-outline  { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost    { background: var(--bg); color: var(--text); }
+
+    /* ── STATUS ── */
+    #status {
+      min-height: 22px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      margin: 8px 0;
+    }
+
+    /* ── QR RESULT ── */
+    #result-section { display: none; }
+    .qr-center { text-align: center; padding: 8px 0; }
+    #qr-container { display: inline-block; padding: 12px; background: #fff; border-radius: 12px; border: 1px solid var(--border); }
+    #qr-container canvas, #qr-container img { display: block; }
+
+    .url-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--muted);
+      word-break: break-all;
+      margin: 12px 0;
+    }
+
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; }
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .badge-ok   { background: #ecfdf5; color: var(--success); }
+    .badge-warn { background: #fffbeb; color: var(--warn); }
+
+    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* ── PREVIEW (phone page) ── */
+    .phone-mock {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      max-width: 280px;
+      margin: 0 auto;
+      box-shadow: var(--shadow);
+    }
+    .phone-mock-header {
+      background: var(--accent);
+      color: #fff;
+      text-align: center;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .phone-mock-body {
+      padding: 28px 20px;
+      text-align: center;
+    }
+    .car-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    #mock-call-btn {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .mock-note { font-size: 11px; color: var(--muted); margin-top: 10px; }
+
+    /* ── CALL PAGE ── */
+    #call-page {
+      min-height: 100vh;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--bg);
+    }
+    .call-card {
+      background: var(--card);
+      border-radius: 24px;
+      padding: 40px 28px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.12);
+    }
+    .call-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .call-card p  { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+    #call-btn-main {
+      display: block;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 18px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      text-decoration: none;
+    }
+    .call-note { font-size: 11px; color: var(--muted); margin-top: 12px; }
+    #key-prompt { margin-bottom: 16px; }
+    #key-prompt input { margin-top: 8px; }
+
+    /* ── PRINT ── */
+    @media print {
+      header, .tabs, main > .tab-content:not(.active), #key-section, .action-grid, #status, .badges, .url-box, .helper, .card-title { display: none !important; }
+      .card { box-shadow: none; border: none; }
+      #result-section { display: block !important; }
+      .qr-center { margin: 20px auto; }
+      body { background: #fff; }
+    }
+
+    @media (max-width: 380px) {
+      .action-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="app-root">
+
+  <!-- ══════════ GENERATE / PREVIEW PAGE ══════════ -->
+  <div id="gen-page">
+    <header>
+      <h1>🚗 차량 안심번호 QR</h1>
+      <p>전화번호를 암호화하여 QR코드로 생성</p>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('generate')">QR 생성</button>
+      <button class="tab-btn" onclick="switchTab('preview')">전화 페이지 미리보기</button>
+      <button class="tab-btn" onclick="switchTab('guide')">설치 가이드</button>
+    </div>
+
+    <main>
+
+      <!-- ── TAB: GENERATE ── -->
+      <div class="tab-content active" id="tab-generate">
+
+        <div class="card">
+          <div class="card-title">① 전화번호</div>
+          <input type="tel" id="phone-input" placeholder="01012345678" maxlength="11" inputmode="numeric" />
+          <p class="helper">하이픈(-) 없이 숫자만 입력하세요.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">② 암호화 키</div>
+          <div class="input-row">
+            <input type="password" id="secret-input" placeholder="본인만 아는 단어/숫자" autocomplete="off" />
+            <button class="btn btn-outline btn-sm" onclick="toggleSecret()">보기</button>
+          </div>
+          <p class="helper">이 키로 번호를 AES-GCM 암호화합니다. <strong>분실 시 복호화 불가</strong> — 반드시 메모하세요.</p>
+        </div>
+
+        <div class="card" id="key-section">
+          <div class="card-title">③ GitHub Pages 주소 (선택)</div>
+          <input type="text" id="base-url" placeholder="https://wjdtlr33.github.io/QR_Car" />
+          <p class="helper">비워두면 현재 페이지 주소를 사용합니다.</p>
+        </div>
+
+        <button class="btn btn-primary" onclick="generateQR()">🔐 QR 생성하기</button>
+        <div id="status"></div>
+
+        <!-- RESULT -->
+        <div id="result-section" class="card" style="margin-top:14px;">
+          <div class="card-title">생성된 QR 코드</div>
+          <div class="qr-center">
+            <div id="qr-container"></div>
+          </div>
+          <div class="url-box" id="qr-url-box"></div>
+          <div class="badges">
+            <span class="badge badge-ok">🔒 AES-GCM 256bit</span>
+            <span class="badge badge-warn">⚠️ 소스 분석 시 추출 가능</span>
+          </div>
+          <div class="action-grid">
+            <button class="btn btn-outline btn-sm" onclick="downloadQR()">⬇️ PNG 저장</button>
+            <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ 인쇄</button>
+            <button class="btn btn-outline btn-sm" onclick="copyUrl()">📋 URL 복사</button>
+            <button class="btn btn-ghost btn-sm" onclick="switchTab('preview')">📱 미리보기</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── TAB: PREVIEW ── -->
+      <div class="tab-content" id="tab-preview">
+        <p style="font-size:13px; color:var(--muted); margin-bottom:16px; text-align:center;">
+          타인이 QR 스캔 후 보게 될 화면입니다.
+        </p>
+        <div class="phone-mock">
+          <div class="phone-mock-header">🚗 차량 연락처</div>
+          <div class="phone-mock-body">
+            <div class="car-icon">🚗</div>
+            <p style="font-size:14px; color:var(--muted); margin-bottom:20px; line-height:1.6;">
+              주차 관련 문의사항이<br>있으신가요?
+            </p>
+            <a id="mock-call-btn" href="#">📞 전화하기</a>
+            <p class="mock-note">번호는 암호화되어 보호됩니다</p>
+          </div>
+        </div>
+        <p style="font-size:12px; color:var(--muted); text-align:center; margin-top:16px;">
+          QR 생성 후 "전화하기" 버튼이 실제 번호로 연결됩니다.
+        </p>
+      </div>
+
+      <!-- ── TAB: GUIDE ── -->
+      <div class="tab-content" id="tab-guide">
+        <div class="card">
+          <div class="card-title">GitHub Pages 배포 순서</div>
+          <ol style="font-size:14px; line-height:2; padding-left:18px; color:var(--text);">
+            <li>GitHub 로그인 → <strong>wjdtlr33/QR_Car</strong> 레포 이동</li>
+            <li><strong>Add file → Upload files</strong> 클릭</li>
+            <li>이 <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">index.html</code> 파일 업로드</li>
+            <li><strong>Settings → Pages</strong> 이동</li>
+            <li>Branch: <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">main</code> / folder: <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">/ (root)</code> 선택 후 Save</li>
+            <li>약 1~2분 후 주소 생성:<br>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:4px;font-size:12px;">https://wjdtlr33.github.io/QR_Car</code>
+            </li>
+            <li>위 주소를 <strong>③ GitHub Pages 주소</strong>에 입력 후 QR 재생성</li>
+          </ol>
+        </div>
+
+        <div class="card">
+          <div class="card-title">QR 출력 및 부착 팁</div>
+          <ul style="font-size:14px; line-height:1.9; padding-left:18px; color:var(--text);">
+            <li>PNG 저장 후 <strong>5×5cm 이상</strong>으로 인쇄 권장</li>
+            <li>코팅 필름 부착 시 내구성 향상</li>
+            <li>앞유리 내부 (대시보드 위) 또는 뒷유리 부착</li>
+            <li>직사광선 반사 주의 — 살짝 각도 기울여 부착</li>
+            <li>암호화 키는 별도로 안전하게 보관</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title">보안 안내</div>
+          <ul style="font-size:13px; line-height:1.9; padding-left:18px; color:var(--muted);">
+            <li>✅ QR 스캔만으로는 번호 파악 불가</li>
+            <li>✅ AES-GCM 256bit + PBKDF2 100만회 반복</li>
+            <li>✅ 서버 없음 — 번호가 외부로 전송되지 않음</li>
+            <li>⚠️ 브라우저 개발자도구로 소스 분석 시 추출 가능성 있음</li>
+          </ul>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ══════════ CALL PAGE (QR 스캔 후 보이는 화면) ══════════ -->
+  <div id="call-page">
+    <div class="call-card">
+      <div style="font-size:52px; margin-bottom:14px;">🚗</div>
+      <h2>차량 연락처</h2>
+      <p id="call-desc">주차 관련 문의사항이 있으신가요?<br>아래 버튼으로 바로 연락하세요.</p>
+
+      <div id="key-prompt" style="display:none;">
+        <label style="font-size:13px; color:var(--muted);">암호화 키를 입력하세요</label>
+        <input type="password" id="key-input" placeholder="암호화 키" style="margin-top:8px;" />
+        <button class="btn btn-primary" style="margin-top:10px; font-size:14px;" onclick="tryDecrypt()">확인</button>
+      </div>
+
+      <a id="call-btn-main" href="#" style="display:none;">📞 전화하기</a>
+      <div id="call-status" style="font-size:13px; color:var(--muted); margin-top:12px;"></div>
+      <p class="call-note">번호는 암호화되어 보호됩니다</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── UTILS ──
+const $ = id => document.getElementById(id);
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  $('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function toggleSecret() {
+  const inp = $('secret-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function setStatus(msg) { $('status').textContent = msg; }
+
+// ── CRYPTO ──
+async function getKey(secret, mode) {
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey('raw', enc.encode(secret), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: enc.encode('car-qr-salt-v1'), iterations: 100000, hash: 'SHA-256' },
+    km, { name: 'AES-GCM', length: 256 }, false, [mode]
+  );
+}
+
+async function encrypt(phone, secret) {
+  const enc = new TextEncoder();
+  const key = await getKey(secret, 'encrypt');
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(phone));
+  const buf = new Uint8Array(12 + ct.byteLength);
+  buf.set(iv); buf.set(new Uint8Array(ct), 12);
+  return btoa(String.fromCharCode(...buf)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+async function decrypt(encoded, secret) {
+  const b64 = encoded.replace(/-/g,'+').replace(/_/g,'/');
+  const buf = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const key = await getKey(secret, 'decrypt');
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(0,12) }, key, buf.slice(12));
+  return new TextDecoder().decode(pt);
+}
+
+// ── QR GENERATE ──
+let currentUrl = '';
+let currentPhone = '';
+
+async function generateQR() {
+  const phone = $('phone-input').value.replace(/\D/g,'');
+  const secret = $('secret-input').value.trim();
+  let base = $('base-url').value.trim() || (location.origin + location.pathname.replace(/\/$/, ''));
+
+  if (!phone || phone.length < 10) { setStatus('⚠️ 올바른 전화번호를 입력하세요.'); return; }
+  if (!secret || secret.length < 3) { setStatus('⚠️ 암호화 키를 3자 이상 입력하세요.'); return; }
+
+  setStatus('🔐 암호화 중...');
+
+  try {
+    const enc = await encrypt(phone, secret);
+    currentPhone = phone;
+    currentUrl = base + '#' + enc;
+
+    $('qr-container').innerHTML = '';
+    new QRCode($('qr-container'), {
+      text: currentUrl,
+      width: 200, height: 200,
+      colorDark: '#1a1a2e', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    $('qr-url-box').textContent = currentUrl;
+    $('result-section').style.display = 'block';
+
+    // Update preview button
+    $('mock-call-btn').href = 'tel:' + phone;
+
+    setStatus('✅ 완료! QR을 저장하거나 인쇄하세요.');
+  } catch(e) {
+    setStatus('❌ 오류: ' + e.message);
+  }
+}
+
+function downloadQR() {
+  const c = $('qr-container').querySelector('canvas');
+  if (!c) { alert('먼저 QR을 생성하세요.'); return; }
+  const a = document.createElement('a');
+  a.download = 'car-qr.png';
+  a.href = c.toDataURL('image/png');
+  a.click();
+}
+
+function copyUrl() {
+  if (!currentUrl) return;
+  navigator.clipboard.writeText(currentUrl).then(() => setStatus('📋 URL이 복사되었습니다.'));
+}
+
+// ── CALL PAGE (hash routing) ──
+async function initCallPage() {
+  const hash = location.hash.slice(1);
+  if (!hash) return;
+
+  $('gen-page').style.display = 'none';
+  $('call-page').style.display = 'flex';
+
+  // Try no-key first (for test), else prompt
+  $('key-prompt').style.display = 'block';
+}
+
+async function tryDecrypt() {
+  const secret = $('key-input').value.trim();
+  const hash = location.hash.slice(1);
+  if (!secret) { $('call-status').textContent = '키를 입력하세요.'; return; }
+
+  try {
+    const phone = await decrypt(hash, secret);
+    $('key-prompt').style.display = 'none';
+    $('call-btn-main').style.display = 'block';
+    $('call-btn-main').href = 'tel:' + phone;
+    $('call-desc').textContent = '버튼을 누르면 바로 연결됩니다.';
+    $('call-status').textContent = '';
+  } catch(e) {
+    $('call-status').textContent = '❌ 키가 올바르지 않습니다.';
+  }
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  if (location.hash.length > 1) {
+    initCallPage();
+  }
+});
+</script>
+</body>
+</html>
